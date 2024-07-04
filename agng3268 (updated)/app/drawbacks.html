@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drawbacks</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        canvas {
+            border: 1px solid #ccc;
+            cursor: crosshair;
+        }
+
+        .tools {
+            margin-top: 10px;
+            display: flex;
+        }
+
+        .tools button, .tools input[type="color"], .tools input[type="range"] {
+            margin: 0 5px;
+            padding: 5px;
+            font-size: 14px;
+        }
+
+        .tools button {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <canvas id="canvas" width="800" height="600"></canvas>
+        <div class="tools">
+            <button id="pencil">Pencil</button>
+            <button id="eraser">Eraser</button>
+            <input type="color" id="colorPicker" value="#000000">
+            <input type="range" id="brushSize" min="1" max="50" value="10">
+            <button id="clearCanvas">Clear Canvas</button>
+            <button id="undo">Undo</button>
+            <button id="redo">Redo</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const canvas = document.getElementById("canvas");
+            const ctx = canvas.getContext("2d");
+
+            let isDrawing = false;
+            let lastX = 0;
+            let lastY = 0;
+            let color = "#000000";
+            let brushSize = 10;
+            let tool = "pencil"; // Default tool
+            let drawingHistory = [];
+            let currentHistoryIndex = -1;
+
+            // Event listeners
+            canvas.addEventListener("mousedown", startDrawing);
+            canvas.addEventListener("mousemove", draw);
+            canvas.addEventListener("mouseup", stopDrawing);
+            canvas.addEventListener("mouseout", stopDrawing);
+
+            document.getElementById("pencil").addEventListener("click", () => {
+                tool = "pencil";
+            });
+
+            document.getElementById("eraser").addEventListener("click", () => {
+                tool = "eraser";
+            });
+
+            document.getElementById("colorPicker").addEventListener("change", (event) => {
+                color = event.target.value;
+            });
+
+            document.getElementById("brushSize").addEventListener("change", (event) => {
+                brushSize = event.target.value;
+            });
+
+            document.getElementById("clearCanvas").addEventListener("click", clearCanvas);
+
+            document.getElementById("undo").addEventListener("click", undoDraw);
+            document.getElementById("redo").addEventListener("click", redoDraw);
+
+            // Drawing functions
+            function startDrawing(event) {
+                isDrawing = true;
+                [lastX, lastY] = [event.offsetX, event.offsetY];
+                saveDrawingState();
+            }
+
+            function draw(event) {
+                if (!isDrawing) return;
+
+                ctx.strokeStyle = (tool === "eraser") ? "#ffffff" : color;
+                ctx.lineWidth = brushSize;
+                ctx.lineCap = "round";
+
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(event.offsetX, event.offsetY);
+                ctx.stroke();
+
+                [lastX, lastY] = [event.offsetX, event.offsetY];
+            }
+
+            function stopDrawing() {
+                isDrawing = false;
+                saveDrawingState();
+            }
+
+            function clearCanvas() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                clearDrawingHistory();
+            }
+
+            function saveDrawingState() {
+                if (!isDrawing) return;
+
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                drawingHistory.push(imageData);
+                currentHistoryIndex = drawingHistory.length - 1;
+            }
+
+            function undoDraw() {
+                if (currentHistoryIndex >= 0) {
+                    currentHistoryIndex--;
+                    ctx.putImageData(drawingHistory[currentHistoryIndex], 0, 0);
+                }
+            }
+
+            function redoDraw() {
+                if (currentHistoryIndex < drawingHistory.length - 1) {
+                    currentHistoryIndex++;
+                    ctx.putImageData(drawingHistory[currentHistoryIndex], 0, 0);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
